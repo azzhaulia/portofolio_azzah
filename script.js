@@ -1,18 +1,59 @@
 const menuButton = document.querySelector(".menu-toggle");
 const navigation = document.querySelector(".site-nav");
+const themeToggle = document.querySelector(".theme-toggle");
+const systemTheme = window.matchMedia("(prefers-color-scheme: dark)");
+
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  themeToggle.setAttribute("aria-pressed", String(theme === "dark"));
+  document.querySelector('meta[name="theme-color"]').content = theme === "dark" ? "#171816" : "#ffffff";
+}
+
+applyTheme(document.documentElement.dataset.theme);
+themeToggle.addEventListener("click", () => {
+  const theme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  applyTheme(theme);
+  document.documentElement.dataset.themeSource = "saved";
+  try {
+    localStorage.setItem("portfolio-theme", theme);
+  } catch (error) {
+    console.warn("Tidak dapat menyimpan preferensi tema.", error);
+  }
+});
+systemTheme.addEventListener("change", (event) => {
+  if (document.documentElement.dataset.themeSource === "system") {
+    applyTheme(event.matches ? "dark" : "light");
+  }
+});
+
+function setMenuOpen(isOpen) {
+  menuButton.setAttribute("aria-expanded", String(isOpen));
+  menuButton.querySelector(".sr-only").textContent = isOpen ? "Tutup navigasi" : "Buka navigasi";
+  navigation.classList.toggle("is-open", isOpen);
+}
 
 menuButton.addEventListener("click", () => {
-  const isExpanded = menuButton.getAttribute("aria-expanded") === "true";
-  menuButton.setAttribute("aria-expanded", String(!isExpanded));
-  navigation.classList.toggle("is-open", !isExpanded);
+  setMenuOpen(menuButton.getAttribute("aria-expanded") !== "true");
 });
 
 navigation.addEventListener("click", (event) => {
   if (event.target.closest("a")) {
-    menuButton.setAttribute("aria-expanded", "false");
-    navigation.classList.remove("is-open");
+    setMenuOpen(false);
   }
 });
+
+document.addEventListener("click", (event) => {
+  if (!navigation.contains(event.target) && !menuButton.contains(event.target)) {
+    setMenuOpen(false);
+  }
+});
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && menuButton.getAttribute("aria-expanded") === "true") {
+    setMenuOpen(false);
+    menuButton.focus();
+  }
+});
+window.matchMedia("(min-width: 761px)").addEventListener("change", () => setMenuOpen(false));
 
 const pages = document.querySelectorAll("main > section");
 const navigationLinks = navigation.querySelectorAll("a");
@@ -79,16 +120,25 @@ for (let columnIndex = 0; columnIndex < 4; columnIndex++) {
 const aboutPhoto = document.querySelector(".home-about-photo");
 const originalPhoto = aboutPhoto.getAttribute("src");
 const originalPhotoAlt = aboutPhoto.alt;
+const photoWithoutHover = window.matchMedia("(hover: none)");
+
+function updateAboutPhoto(showGraduation) {
+  aboutPhoto.src = showGraduation ? "toga.jpeg" : originalPhoto;
+  aboutPhoto.alt = showGraduation ? "Potret toga Azzah Aulia Syarif" : originalPhotoAlt;
+}
+
+updateAboutPhoto(photoWithoutHover.matches);
+photoWithoutHover.addEventListener("change", () => {
+  updateAboutPhoto(photoWithoutHover.matches);
+});
 
 aboutPhoto.addEventListener("pointerenter", (event) => {
   if (event.pointerType === "touch") return;
-  aboutPhoto.src = "toga.jpeg";
-  aboutPhoto.alt = "Potret toga Azzah Aulia Syarif";
+  updateAboutPhoto(true);
 });
 
 aboutPhoto.addEventListener("pointerleave", () => {
-  aboutPhoto.src = originalPhoto;
-  aboutPhoto.alt = originalPhotoAlt;
+  updateAboutPhoto(photoWithoutHover.matches);
 });
 
 const rippleLayer = document.querySelector(".ripple-layer");
